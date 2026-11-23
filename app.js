@@ -1,7 +1,3 @@
-// ==========================================
-// טריוויה חכמה ודינמית בעברית (ללא מודל כבד)
-// עובד מהר ויציב על אייפון ומחשב ישן
-// ==========================================
 
 const DIFFICULTY_POINTS = {
   easy: 50,
@@ -420,7 +416,7 @@ function resetGame() {
 
   els.qTopicBadge.textContent = "מוכן להתחלה";
   els.qPointsBadge.textContent = "+100 נקודות";
-  els.questionText.textContent = "המשחק אופס. לחץ על "שאלה חדשה" כדי להתחיל!";
+  els.questionText.textContent = 'המשחק אופס. לחץ על "שאלה חדשה" כדי להתחיל!';
   els.answerInput.value = "";
   els.answerInput.disabled = true;
   els.submitBtn.disabled = true;
