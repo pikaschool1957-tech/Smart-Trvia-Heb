@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>טריוויה חכמה - AI + מצב תאימות למחשב ישן</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-light: #334155;
+    --accent: #38bdf8;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  h1 { margin: 0 0 6px; color: var(--accent); text-align: center; }
+  .subtitle { color: var(--muted); margin: 0 0 14px; text-align: center; font-size: 0.95rem; }
+
+  #engine-badge {
+    background: var(--card);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  /* סרגל ניקוד ותכנון */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    text-align: center;
+  }
+  .stat-box {
+    background: var(--bg);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 10px 8px;
+  }
+  .stat-label { font-size: 0.78rem; color: var(--muted); }
+  .stat-value { font-size: 1.25rem; font-weight: bold; color: var(--accent); margin-top: 2px; }
+
+  /* סרגל טעינת מודל */
+  #model-status-box {
+    display: none;
+    text-align: center;
+  }
+  .progress-bar {
+    width: 100%;
+    height: 10px;
+    background: #334155;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  #progress-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.2s;
+  }
+
+  /* הגדרות סיבוב */
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 150px;
+  }
+  label { font-size: 0.82rem; color: var(--muted); }
+  select, input[type="text"] {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid #475569;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.98rem;
+    outline: none;
+  }
+  select:focus, input[type="text"]:focus { border-color: var(--accent); }
+
+  button {
+    background: var(--accent);
+    color: #0f172a;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  button:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.92; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: var(--card-light);
+    color: var(--text);
+    border: 1px solid #475569;
+  }
+  .btn-hint {
+    background: transparent;
+    color: var(--yellow);
+    border: 1px solid var(--yellow);
+  }
+
+  /* אזור השאלה */
+  .question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  #question-text {
+    font-size: 1.25rem;
+    font-weight: bold;
+    line-height: 1.5;
+    margin: 8px 0 16px;
+  }
+
+  .answer-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  #answer-input {
+    flex: 1;
+    min-width: 220px;
+  }
+
+  #hint-box {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    color: var(--yellow);
+    font-size: 0.92rem;
+    display: none;
+  }
+
+  #feedback-box {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--bg);
+    border: 1px solid #334155;
+    display: none;
+    line-height: 1.5;
+  }
+
+  .action-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+</style>
+</head>
+<body>
+
+<h1>🧠 טריוויה חכמה</h1>
+<p class="subtitle">שאלות ובדיקת תשובות חופשיות • עם מעבר אוטומטי למנוע מהיר במחשב ישן</p>
+<div id="engine-badge">בודק חומרה ותמיכה ב-WebAssembly SIMD...</div>
+
+<div class="container">
+
+  <!-- לוח ניקוד ותכנון -->
+  <div class="card stats-bar">
+    <div class="stat-box">
+      <div class="stat-label">ניקוד נוכחי</div>
+      <div class="stat-value" id="score-val">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">מכפיל רצף</div>
+      <div class="stat-value" id="streak-val">x1.0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">שאלות שנענו</div>
+      <div class="stat-value" id="answered-val">0 / 10</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">שיא אישי</div>
+      <div class="stat-value" id="best-val">0</div>
+    </div>
+  </div>
+
+  <!-- סטטוס טעינת מודל (מוצג רק אם החומרה תומכת) -->
+  <div class="card" id="model-status-box">
+    <div id="model-status-text">טוען מודל AI ברקע...</div>
+    <div class="progress-bar"><div id="progress-fill"></div></div>
+  </div>
+
+  <!-- תכנון סיבוב: בחירת נושא ורמת קושי -->
+  <div class="card">
+    <div class="controls-row">
+      <div class="control-group">
+        <label for="topic-select">נושא השאלה</label>
+        <select id="topic-select">
+          <option value="מדע וטבע">מדע וטבע</option>
+          <option value="היסטוריה ותרבות">היסטוריה ותרבות</option>
+          <option value="טכנולוגיה ומחשבים">טכנולוגיה ומחשבים</option>
+          <option value="גיאוגרפיה ועולם">גיאוגרפיה ועולם</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="difficulty-select">רמת סיכון וניקוד</label>
+        <select id="difficulty-select">
+          <option value="easy">קלה (50 נק' • סיכון נמוך)</option>
+          <option value="medium" selected>בינונית (100 נק' • מאוזן)</option>
+          <option value="hard">קשה (200 נק' • בונוס גבוה)</option>
+        </select>
+      </div>
+      <div style="align-self: flex-end;">
+        <button id="new-q-btn" onclick="requestNextQuestion()">שאלה חדשה 🎲</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- כרטיס השאלה -->
+  <div class="card" id="question-card">
+    <div class="question-header">
+      <span id="q-meta">מוכן להתחיל</span>
+      <span id="q-points-badge">+100 נקודות</span>
+    </div>
+
+    <div id="question-text">לחץ על "שאלה חדשה" כדי להתחיל סיבוב!</div>
+
+    <div class="answer-row">
+      <input type="text" id="answer-input" placeholder="הקלד את תשובתך כאן..." disabled onkeydown="if(event.key==='Enter') submitAnswer()">
+      <button id="submit-btn" onclick="submitAnswer()" disabled>בדוק תשובה ✓</button>
+    </div>
+
+    <div id="hint-box"></div>
+    <div id="feedback-box"></div>
+
+    <div class="action-footer">
+      <button class="btn-hint" id="hint-btn" onclick="useHint()" disabled>קנה רמז (-25 נק')</button>
+      <button class="btn-secondary" onclick="resetGame()">אפס משחק ↺</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Web Worker עבור מודל AI (יופעל רק אם יש WebGPU או WASM SIMD) -->
+<script id="ai-worker-code" type="javascript/worker">
+import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
+
+const MODEL_ID = "onnx-community/Qwen2.5-0.5B-Instruct";
+let generator = null;
+
+self.onmessage = async (e) => {
+  const { type, payload } = e.data;
+
+  if (type === "INIT") {
+    try {
+      generator = await pipeline("text-generation", MODEL_ID, {
+        device: payload.device,
+        dtype: "q4",
+        progress_callback: (data) => {
+          if (data.status === "progress" && typeof data.progress === "number") {
+            self.postMessage({ type: "PROGRESS", progress: Math.min(100, Math.max(0, data.progress)) });
+          }
+        }
+      });
+      self.postMessage({ type: "READY" });
+    } catch (err) {
+      self.postMessage({ type: "FALLBACK", reason: err?.message || String(err) });
+    }
+  }
+
+  if (type === "GENERATE_Q") {
+    try {
+      const prompt = [
+        {
+          role: "system",
+          content: "You are a Hebrew trivia generator. Create ONE short trivia question in Hebrew on the requested topic and difficulty. Reply ONLY in exact format:\nQUESTION: <Hebrew question>\nANSWER: <short Hebrew answer>\nHINT: <short Hebrew hint>"
+        },
+        {
+          role: "user",
+          content: `Topic: ${payload.topic}, Difficulty: ${payload.difficulty}`
+        }
+      ];
+      const out = await generator(prompt, { max_new_tokens: 90, temperature: 0.7, do_sample: true });
+      const last = out[0].generated_text.at(-1);
+      const text = (typeof last === "string" ? last : last.content || "").trim();
+      self.postMessage({ type: "QUESTION_READY", rawText: text });
+    } catch (err) {
+      self.postMessage({ type: "AI_STEP_ERROR", error: err?.message || String(err) });
+    }
+  }
+
+  if (type === "GRADE_A") {
+    try {
+      const prompt = [
+        {
+          role: "system",
+          content: "You grade a Hebrew trivia answer. Compare user answer to expected answer. Allow minor spelling differences or synonyms. Reply ONLY in exact format:\nVERDICT: YES or NO\nEXPLANATION: <one short sentence in Hebrew>"
+        },
+        {
+          role: "user",
+          content: `Question: ${payload.question}\nExpected answer: ${payload.expected}\nUser answer: ${payload.userAnswer}`
+        }
+      ];
+      const out = await generator(prompt, { max_new_tokens: 55, temperature: 0.2, do_sample: false });
+      const last = out[0].generated_text.at(-1);
+      const text = (typeof last === "string" ? last : last.content || "").trim();
+      self.postMessage({ type: "GRADE_READY", rawText: text });
+    } catch (err) {
+      self.postMessage({ type: "AI_STEP_ERROR", error: err?.message || String(err) });
+    }
+  }
+};
+</script>
+
+<script>
+// 1. בדיקת תמיכה אמיתית ב-WebAssembly SIMD (מונע קריסה במחשבים ישנים)
+function detectWasmSimdSupport() {
+  try {
+    if (typeof WebAssembly !== "object" || typeof WebAssembly.validate !== "function") {
+      return false;
+    }
+    // מודול WASM מינימלי שמכיל הוראת v128.const (SIMD)
+    const simdBytes = new Uint8Array([
+      0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+      0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7b,
+      0x03, 0x02, 0x01, 0x00,
+      0x0a, 0x16, 0x01, 0x14, 0x00,
+      0xfd, 0x0c,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x0b
+    ]);
+    return WebAssembly.validate(simdBytes);
+  } catch (e) {
+    return false;
+  }
+}
+
+// 2. מאגר שאלות מקומי עשיר למצב תאימות / גיבוי מיידי
+const LOCAL_BANK = [
+  { topic: "מדע וטבע", difficulty: "easy", q: "איזה כוכב לכת הוא הקרוב ביותר לשמש?", a: "כוכב חמה", keywords: ["חמה", "מרקורי"], hint: "הוא גם כוכב הלכת הקטן ביותר במערכת השמש." },
+  { topic: "מדע וטבע", difficulty: "easy", q: "מהו היסוד הכימי הנפוץ ביותר ביקום?", a: "מימן", keywords: ["מימן", "הידרוגן"], hint: "הסימול הכימי שלו הוא H." },
+  { topic: "מדע וטבע", difficulty: "medium", q: "איזה איבר בגוף האדם אחראי על סינון הדם וייצור שתן?", a: "כליות", keywords: ["כליה", "כליות"], hint: "לרוב האנשים יש זוג איברים כאלה בגב התחתון." },
+  { topic: "מדע וטבע", difficulty: "hard", q: "מה שמו של התהליך שבו צמחים הופכים אור שמש לאנרגיה כימית?", a: "פוטוסינתזה", keywords: ["פוטוסינתזה", "הטמעה"], hint: "דורש כלורופיל, מים ופחמן דו-חמצני." },
+
+  { topic: "היסטוריה ותרבות", difficulty: "easy", q: "באיזו עיר נמצא הקולוסיאום העתיק?", a: "רומא", keywords: ["רומא"], hint: "בירת איטליה." },
+  { topic: "היסטוריה ותרבות", difficulty: "medium", q: "מי היה ראש הממשלה הראשון של מדינת ישראל?", a: "דוד בן גוריון", keywords: ["בן גוריון", "בן-גוריון"], hint: "הכריז על הקמת המדינה בה' באייר תש\"ח." },
+  { topic: "היסטוריה ותרבות", difficulty: "hard", q: "באיזו שנה נחתה החללית אפולו 11 על הירח?", a: "1969", keywords: ["1969"], hint: "סוף שנות ה-60 של המאה ה-20." },
+
+  { topic: "טכנולוגיה ומחשבים", difficulty: "easy", q: "מה משמעות הקיצור CPU במחשב?", a: "יחידת עיבוד מרכזית", keywords: ["מעבד", "עיבוד", "central processing"], hint: "ה'מוח' של המחשב שמבצע חישובים." },
+  { topic: "טכנולוגיה ומחשבים", difficulty: "medium", q: "איזו שפת תכנות רצה באופן טבעי בתוך כל דפדפן אינטרנט?", a: "JavaScript", keywords: ["javascript", "ג'אווה סקריפט", "גאווה סקריפט", "js"], hint: "ראשי התיבות שלה הם JS." },
+  { topic: "טכנולוגיה ומחשבים", difficulty: "hard", q: "איזה פרוטוקול משמש להצפנת תקשורת מאובטחת באתרי אינטרנט?", a: "HTTPS", keywords: ["https", "tls", "ssl"], hint: "גרסה מאובטחת של HTTP עם מנעול בדפדפן." },
+
+  { topic: "גיאוגרפיה ועולם", difficulty: "easy", q: "מהו האוקיינוס הגדול ביותר בכדור הארץ?", a: "האוקיינוס השקט", keywords: ["שקט", "פסיפי"], hint: "נמצא בין אסיה ואוסטרליה לבין אמריקה." },
+  { topic: "גיאוגרפיה ועולם", difficulty: "medium", q: "מהי עיר הבירה של יפן?", a: "טוקיו", keywords: ["טוקיו"], hint: "המטרופולין המאוכלס ביותר בעולם." },
+  { topic: "גיאוגרפיה ועולם", difficulty: "hard", q: "איזה נהר נחשב לארוך ביותר באפריקה?", a: "הנילוס", keywords: ["נילוס"], hint: "זורם צפונה ונשפך לים התיכון דרך מצרים." }
+];
+
+const DIFFICULTY_POINTS = { easy: 50, medium: 100, hard: 200 };
+const MAX_QUESTIONS = 10;
+
+// מצב המשחק
+let useAiEngine = false;
+let aiReady = false;
+let worker = null;
+
+let score = 0;
+let streak = 0;
+let answeredCount = 0;
+let bestScore = Number(localStorage.getItem("trivia_best_score") || 0);
+let currentQuestion = null;
+let hintUsed = false;
+let usedLocalIndices = new Set();
+
+const engineBadge = document.getElementById("engine-badge");
+const modelStatusBox = document.getElementById("model-status-box");
+const modelStatusText = document.getElementById("model-status-text");
+const progressFill = document.getElementById("progress-fill");
+
+function initEngine() {
+  const hasWebGPU = !!navigator.gpu;
+  const hasSimd = detectWasmSimdSupport();
+
+  if (!hasWebGPU && !hasSimd) {
+    activateFallbackMode("זוהה מחשב/דפדפן ללא WebAssembly SIMD או GPU — הופעל מנוע מקומי מהיר ללא השהיה.");
+    return;
+  }
+
+  const device = hasWebGPU ? "webgpu" : "wasm";
+  engineBadge.innerText = hasWebGPU
+    ? "⚡ מצב AI פעיל: האצת כרטיס מסך (WebGPU)"
+    : "🧠 מצב AI פעיל: מעבד עם WebAssembly SIMD";
+  engineBadge.style.borderColor = "#38bdf8";
+  engineBadge.style.color = "#38bdf8";
+
+  modelStatusBox.style.display = "block";
+  modelStatusText.innerText = "טוען מודל AI להמצאת שאלות ובדיקת תשובות (0%)...";
+
+  const blob = new Blob([document.getElementById("ai-worker-code").textContent], { type: "application/javascript" });
+  worker = new Worker(URL.createObjectURL(blob), { type: "module" });
+  worker.postMessage({ type: "INIT", payload: { device } });
+
+  worker.onmessage = (e) => {
+    const { type, progress, rawText, reason, error } = e.data;
+
+    if (type === "PROGRESS") {
+      const pct = Math.round(progress);
+      modelStatusText.innerText = `מוריד וטוען מודל AI (${pct}%)...`;
+      progressFill.style.width = `${pct}%`;
+    } else if (type === "READY") {
+      useAiEngine = true;
+      aiReady = true;
+      modelStatusBox.style.display = "none";
+      engineBadge.innerText += " • המודל מוכן!";
+    } else if (type === "FALLBACK") {
+      activateFallbackMode(`טעינת המודל נכשלה (${reason}) — עבר אוטומטית למנוע מקומי מהיר.`);
+    } else if (type === "QUESTION_READY") {
+      handleAiQuestion(rawText);
+    } else if (type === "GRADE_READY") {
+      handleAiGrade(rawText);
+    } else if (type === "AI_STEP_ERROR") {
+      // אם המודל נתקע באמצע שאלה, עוברים חלקית למנוע המקומי
+      loadLocalQuestion();
+    }
+  };
+}
+
+function activateFallbackMode(message) {
+  useAiEngine = false;
+  aiReady = false;
+  modelStatusBox.style.display = "none";
+  engineBadge.innerText = `🛡️ מצב תאימות מהיר (ללא SIMD/GPU): ${message}`;
+  engineBadge.style.borderColor = "#4ade80";
+  engineBadge.style.color = "#4ade80";
+}
+
+function updateStatsUI() {
+  document.getElementById("score-val").innerText = score;
+  const mult = (1 + Math.min(streak, 5) * 0.2).toFixed(1);
+  document.getElementById("streak-val").innerText = `x${mult}`;
+  document.getElementById("answered-val").innerText = `${answeredCount} / ${MAX_QUESTIONS}`;
+  document.getElementById("best-val").innerText = bestScore;
+}
+
+function requestNextQuestion() {
+  if (answeredCount >= MAX_QUESTIONS) {
+    finishRound();
+    return;
+  }
+
+  const topic = document.getElementById("topic-select").value;
+  const difficulty = document.getElementById("difficulty-select").value;
+  const pts = DIFFICULTY_POINTS[difficulty];
+
+  hintUsed = false;
+  document.getElementById("hint-box").style.display = "none";
+  document.getElementById("feedback-box").style.display = "none";
+  document.getElementById("answer-input").value = "";
+  document.getElementById("answer-input").disabled = true;
+  document.getElementById("submit-btn").disabled = true;
+  document.getElementById("hint-btn").disabled = true;
+  document.getElementById("new-q-btn").disabled = true;
+
+  document.getElementById("q-meta").innerText = `${topic} • שאלה ${answeredCount + 1} מתוך ${MAX_QUESTIONS}`;
+  document.getElementById("q-points-badge").innerText = `+${pts} נקודות בסיס`;
+
+  if (useAiEngine && aiReady && worker) {
+    document.getElementById("question-text").innerText = "המודל ממציא שאלה חדשה... ⏳";
+    worker.postMessage({ type: "GENERATE_Q", payload: { topic, difficulty } });
+  } else {
+    loadLocalQuestion();
+  }
+}
+
+function handleAiQuestion(rawText) {
+  const qMatch = rawText.match(/QUESTION:\s*(.+)/i);
+  const aMatch = rawText.match(/ANSWER:\s*(.+)/i);
+  const hMatch = rawText.match(/HINT:\s*(.+)/i);
+
+  if (!qMatch || !aMatch) {
+    loadLocalQuestion();
+    return;
+  }
+
+  const difficulty = document.getElementById("difficulty-select").value;
+  currentQuestion = {
+    q: qMatch[1].trim(),
+    a: aMatch[1].trim(),
+    keywords: aMatch[1].trim().toLowerCase().split(/\s+/),
+    hint: hMatch ? hMatch[1].trim() : "חשוב על המושג המרכזי הקשור לשאלה.",
+    points: DIFFICULTY_POINTS[difficulty],
+    fromAi: true
+  };
+  enableQuestionUI();
+}
+
+function loadLocalQuestion() {
+  const topic = document.getElementById("topic-select").value;
+  const difficulty = document.getElementById("difficulty-select").value;
+
+  let candidates = LOCAL_BANK
+    .map((item, idx) => ({ item, idx }))
+    .filter(x => x.item.topic === topic && x.item.difficulty === difficulty && !usedLocalIndices.has(x.idx));
+
+  if (candidates.length === 0) {
+    candidates = LOCAL_BANK
+      .map((item, idx) => ({ item, idx }))
+      .filter(x => x.item.topic === topic && !usedLocalIndices.has(x.idx));
+  }
+  if (candidates.length === 0) {
+    usedLocalIndices.clear();
+    candidates = LOCAL_BANK.map((item, idx) => ({ item, idx }));
+  }
+
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+  usedLocalIndices.add(pick.idx);
+
+  currentQuestion = {
+    q: pick.item.q,
+    a: pick.item.a,
+    keywords: pick.item.keywords,
+    hint: pick.item.hint,
+    points: DIFFICULTY_POINTS[difficulty],
+    fromAi: false
+  };
+  enableQuestionUI();
+}
+
+function enableQuestionUI() {
+  document.getElementById("question-text").innerText = currentQuestion.q;
+  document.getElementById("answer-input").disabled = false;
+  document.getElementById("submit-btn").disabled = false;
+  document.getElementById("hint-btn").disabled = score < 25;
+  document.getElementById("new-q-btn").disabled = false;
+  document.getElementById("answer-input").focus();
+}
+
+function useHint() {
+  if (!currentQuestion || hintUsed || score < 25) return;
+  score -= 25;
+  hintUsed = true;
+  updateStatsUI();
+
+  const hintBox = document.getElementById("hint-box");
+  hintBox.innerText = `💡 רמז: ${currentQuestion.hint}`;
+  hintBox.style.display = "block";
+  document.getElementById("hint-btn").disabled = true;
+}
+
+function submitAnswer() {
+  if (!currentQuestion) return;
+  const userAnswer = document.getElementById("answer-input").value.trim();
+  if (!userAnswer) return;
+
+  document.getElementById("answer-input").disabled = true;
+  document.getElementById("submit-btn").disabled = true;
+  document.getElementById("hint-btn").disabled = true;
+  document.getElementById("new-q-btn").disabled = true;
+
+  if (useAiEngine && aiReady && worker) {
+    const fb = document.getElementById("feedback-box");
+    fb.style.display = "block";
+    fb.style.borderColor = "#38bdf8";
+    fb.innerText = "המודל בודק את התשובה שלך... ⏳";
+    worker.postMessage({
+      type: "GRADE_A",
+      payload: {
+        question: currentQuestion.q,
+        expected: currentQuestion.a,
+        userAnswer
+      }
+    });
+  } else {
+    gradeLocally(userAnswer);
+  }
+}
+
+function handleAiGrade(rawText) {
+  const vMatch = rawText.match(/VERDICT:\s*(YES|NO)/i);
+  const eMatch = rawText.match(/EXPLANATION:\s*(.+)/i);
+
+  if (!vMatch) {
+    gradeLocally(document.getElementById("answer-input").value.trim());
+    return;
+  }
+
+  const isCorrect = vMatch[1].toUpperCase() === "YES";
+  const explanation = eMatch ? eMatch[1].trim() : `התשובה הצפויה: ${currentQuestion.a}`;
+  finalizeAnswer(isCorrect, explanation);
+}
+
+function normalizeText(str) {
+  return str
+    .toLowerCase()
+    .replace(/["'.,!?():;-]/g, "")
+    .replace(/^ה(?=[א-ת]{2,})/, "")
+    .trim();
+}
+
+function gradeLocally(userAnswer) {
+  const normUser = normalizeText(userAnswer);
+  const normExpected = normalizeText(currentQuestion.a);
+
+  const keywordMatch = currentQuestion.keywords.some(kw => normUser.includes(normalizeText(kw)));
+  const directMatch = normUser.length >= 2 && (normExpected.includes(normUser) || normUser.includes(normExpected));
+  const isCorrect = keywordMatch || directMatch;
+
+  const explanation = isCorrect
+    ? `מצוין! התשובה הנכונה היא "${currentQuestion.a}".`
+    : `לא מדויק. התשובה הנכונה היא "${currentQuestion.a}".`;
+
+  finalizeAnswer(isCorrect, explanation);
+}
+
+function finalizeAnswer(isCorrect, explanation) {
+  answeredCount += 1;
+  const fb = document.getElementById("feedback-box");
+  fb.style.display = "block";
+
+  if (isCorrect) {
+    const mult = 1 + Math.min(streak, 5) * 0.2;
+    const earned = Math.round(currentQuestion.points * mult);
+    score += earned;
+    streak += 1;
+    if (score > bestScore) {
+      bestScore = score;
+      localStorage.setItem("trivia_best_score", String(bestScore));
+    }
+    fb.style.borderColor = "#4ade80";
+    fb.innerHTML = `<strong style="color:#4ade80;">✓ תשובה נכונה! (+${earned} נקודות)</strong><br>${explanation}`;
+  } else {
+    streak = 0;
+    fb.style.borderColor = "#f87171";
+    fb.innerHTML = `<strong style="color:#f87171;">✗ לא נכון (הרצף אופס)</strong><br>${explanation}`;
+  }
+
+  currentQuestion = null;
+  updateStatsUI();
+
+  const nextBtn = document.getElementById("new-q-btn");
+  nextBtn.disabled = false;
+  nextBtn.innerText = answeredCount >= MAX_QUESTIONS ? "סיים סיבוב 🏆" : "לשאלה הבאה ➔";
+}
+
+function finishRound() {
+  document.getElementById("question-text").innerText = `הסיבוב הסתיים! צברת ${score} נקודות (שיא אישי: ${bestScore}).`;
+  document.getElementById("q-meta").innerText = "סיכום סיבוב";
+  document.getElementById("feedback-box").style.display = "none";
+  document.getElementById("hint-box").style.display = "none";
+  document.getElementById("new-q-btn").innerText = "סיבוב חדש 🎲";
+  score = 0;
+  streak = 0;
+  answeredCount = 0;
+  updateStatsUI();
+}
+
+function resetGame() {
+  score = 0;
+  streak = 0;
+  answeredCount = 0;
+  currentQuestion = null;
+  usedLocalIndices.clear();
+  updateStatsUI();
+  document.getElementById("question-text").innerText = "המשחק אופס. לחץ על \"שאלה חדשה\" כדי להתחיל!";
+  document.getElementById("q-meta").innerText = "מוכן להתחיל";
+  document.getElementById("feedback-box").style.display = "none";
+  document.getElementById("hint-box").style.display = "none";
+  document.getElementById("answer-input").value = "";
+  document.getElementById("answer-input").disabled = true;
+  document.getElementById("submit-btn").disabled = true;
+  document.getElementById("hint-btn").disabled = true;
+  document.getElementById("new-q-btn").innerText = "שאלה חדשה 🎲";
+  document.getElementById("new-q-btn").disabled = false;
+}
+
+updateStatsUI();
+initEngine();
+</script>
+</body>
+</html>
